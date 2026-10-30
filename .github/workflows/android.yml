@@ -33,10 +33,15 @@ jobs:
           gradle-version: '8.9'
 
       - name: Include uploaded prank video when present
+        shell: bash
         run: |
-          if [ -f assets/prank_video.mp4 ]; then
+          VIDEO_FILE="$(find assets -maxdepth 1 -type f -iname '*.mp4' -print -quit)"
+          if [ -n "$VIDEO_FILE" ]; then
             mkdir -p app/src/main/res/raw
-            cp assets/prank_video.mp4 app/src/main/res/raw/prank_video.mp4
+            cp "$VIDEO_FILE" app/src/main/res/raw/prank_video.mp4
+            echo "Bundled video: $VIDEO_FILE"
+          else
+            echo "No MP4 found in assets; app will use built-in animated fallback."
           fi
 
       - name: Build debug APK
