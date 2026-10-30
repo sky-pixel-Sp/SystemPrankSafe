@@ -1,20 +1,23 @@
 # SystemPrankSafe
 
-Aplikasi prank fullscreen. **Begitu dibuka, video langsung diputar otomatis** tanpa tombol mulai. Sesudah video selesai, muncul simulasi error sistem dan progres shutdown palsu, layar hitam singkat, lalu reveal **KENA PRANK!**.
+Aplikasi Android visual fiksi dengan video otomatis dan simulasi pemulihan sistem.
 
-## Sematan layar
-Sekitar 1,2 detik setelah dibuka, aplikasi meminta Android menampilkan dialog resmi **screen pinning**. Pengguna harus menyetujuinya sendiri di dialog sistem; bila ditolak, aplikasi tetap berjalan normal. Sematan dapat dihentikan dengan tombol keluar pada reveal atau gesture/tombol unpin Android.
+## Alur
+1. Video yang tersedia di `assets/*.mp4` diputar otomatis fullscreen saat aplikasi dibuka.
+2. Setelah video, tampil layar SYSTEM FAILURE dengan progress animasi.
+3. Tampil layar DEVICE RECOVERY dengan keypad dan 10 percobaan memasukkan kode simulasi.
+4. Kode yang dimasukkan langsung dibuang di memori; tidak disimpan, dicatat, atau dikirim.
+5. Jika 10 percobaan habis atau pengguna menekan GIVE UP / RESTART, aplikasi menampilkan animasi RESTARTING lalu menutup dirinya sendiri. HP Android tetap hidup dan normal.
 
-Aplikasi tidak memakai Device Owner/kiosk privileges, tidak mematikan perangkat, tidak menghapus data, dan tidak memakai root, Accessibility, Device Admin, atau izin daya. Aplikasi tidak dapat memaksa pengguna tetap berada di dalamnya.
+## Batas keselamatan
+- Input adalah kode simulasi. Jangan pernah masukkan PIN asli layar perangkat.
+- Tidak ada Device Admin, Accessibility Service, overlay, root, atau izin sensitif.
+- Tidak memakai Lock Task / Screen Pinning dan tidak menghalangi pengguna keluar.
+- Tombol Back Android menutup aplikasi.
+- Tidak ada perintah shutdown atau reboot perangkat. Animasi restart hanya tampilan di dalam aplikasi.
 
-## Video milikmu
-Unggah video MP4 ke lokasi berikut di repository:
-
-`assets/prank_video.mp4`
-
-Workflow otomatis menyalinnya ke `app/src/main/res/raw/prank_video.mp4` sebelum build. Nama file harus persis `prank_video.mp4`. Video asli yang kamu unggah berdurasi sekitar 25 detik dan orientasi portrait. Karena repository ini bersifat publik, file video yang kamu unggah ke sana juga akan terlihat publik.
-
-Sebelum video tersedia di repository, APK memakai intro diagnostik animasi bawaan sebagai fallback.
+## Video
+Taruh file MP4 di folder `assets/`. Workflow akan mengambil file MP4 pertama dari folder itu dan menyalinnya sebagai `app/src/main/res/raw/prank_video.mp4` sebelum build.
 
 ## Build
 GitHub Actions membangun APK debug setiap push ke `main` atau saat dijalankan manual. Artifact: `SystemPrankSafe-debug-apk`.
@@ -22,4 +25,4 @@ GitHub Actions membangun APK debug setiap push ke `main` atau saat dijalankan ma
 - Application ID: `com.my.newproject5`
 - Minimum Android: API 23
 - Compile/Target SDK: 35
-- APK output: `app/build/outputs/apk/debug/app-debug.apk`
+- Output: `app/build/outputs/apk/debug/app-debug.apk`
