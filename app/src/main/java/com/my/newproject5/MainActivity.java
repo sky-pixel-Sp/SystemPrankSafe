@@ -9,6 +9,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
 import android.view.Window;
@@ -16,6 +17,7 @@ import android.view.WindowManager;
 import android.view.animation.AlphaAnimation;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.GridLayout;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -24,23 +26,28 @@ import android.widget.VideoView;
 import java.util.Locale;
 
 /**
- * Harmless fullscreen prank.
- * No device-admin, accessibility, root, overlay or power permissions.
- * The app never powers off or locks the real device.
+ * Full-screen fictional system-failure simulation.
+ * It never reads the device lock PIN, changes device credentials,
+ * locks the device, invokes power actions, or performs a real reboot.
  */
 public class MainActivity extends Activity {
     private static final int STATE_VIDEO = 0;
-    private static final int STATE_SHUTDOWN_FAKE = 1;
-    private static final int STATE_BLACKOUT = 2;
-    private static final int STATE_REVEAL = 3;
+    private static final int STATE_FAKE_FAILURE = 1;
+    private static final int STATE_CODE_GATE = 2;
+    private static final int STATE_FAKE_RESTART = 3;
+
+    private static final int MAX_ATTEMPTS = 10;
+    private static final int MAX_CODE_LENGTH = 8;
 
     private FrameLayout root;
-    private TextView statusLine;
-    private TextView percentLine;
-    private ProgressBar progressBar;
+    private TextView codeDots;
+    private TextView attemptsLine;
+    private TextView responseLine;
+    private StringBuilder demoCode = new StringBuilder();
     private int state = STATE_VIDEO;
-    private ValueAnimator shutdownAnimator;
-    private boolean pinRequested = false;
+    private int attemptsLeft = MAX_ATTEMPTS;
+    private ValueAnimator progressAnimator;
+    private VideoView activeVideo;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,30 +61,9 @@ public class MainActivity extends Activity {
         root = new FrameLayout(this);
         root.setBackgroundColor(Color.BLACK);
         setContentView(root);
+
+        // Start the local bundled video immediately. No screen pinning or lock-task mode.
         playUserVideoOrFallback();
-        // Ask Android to show its own screen-pinning confirmation after playback starts.
-        root.postDelayed(this::requestScreenPinning, 1200L);
-    }
-
-    private void requestScreenPinning() {
-        if (pinRequested || isFinishing()) return;
-        pinRequested = true;
-        try {
-            // Personal devices show Android's native confirmation.
-            // The user can decline or unpin with Android's system gesture.
-            startLockTask();
-        } catch (RuntimeException ignored) {
-            // If screen pinning is disabled or unavailable, playback continues normally.
-        }
-    }
-
-    private void exitPrank() {
-        try {
-            stopLockTask();
-        } catch (RuntimeException ignored) {
-            // The user may have declined the system pinning prompt.
-        }
-        finish();
     }
 
     private void enterImmersiveMode() {
@@ -100,22 +86,22 @@ public class MainActivity extends Activity {
             return;
         }
 
-        VideoView videoView = new VideoView(this);
-        videoView.setBackgroundColor(Color.BLACK);
+        activeVideo = new VideoView(this);
+        activeVideo.setBackgroundColor(Color.BLACK);
         root.removeAllViews();
-        root.addView(videoView, new FrameLayout.LayoutParams(
+        root.addView(activeVideo, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
         ));
 
         Uri videoUri = Uri.parse("android.resource://" + getPackageName() + "/" + videoId);
-        videoView.setVideoURI(videoUri);
-        videoView.setOnPreparedListener(mediaPlayer -> {
-            mediaPlayer.setLooping(false);
-            videoView.start();
+        activeVideo.setVideoURI(videoUri);
+        activeVideo.setOnPreparedListener(player -> {
+            player.setLooping(false);
+            activeVideo.start();
         });
-        videoView.setOnCompletionListener(mediaPlayer -> showFakeShutdown());
-        videoView.setOnErrorListener((mediaPlayer, what, extra) -> {
+        activeVideo.setOnCompletionListener(player -> showFakeFailure());
+        activeVideo.setOnErrorListener((player, what, extra) -> {
             showIntroFallback();
             return true;
         });
@@ -124,192 +110,307 @@ public class MainActivity extends Activity {
     private void showIntroFallback() {
         if (isFinishing() || state != STATE_VIDEO) return;
         root.removeAllViews();
-        root.setBackgroundColor(Color.rgb(3, 5, 9));
+        root.setBackgroundColor(Color.rgb(2, 4, 9));
 
-        LinearLayout intro = new LinearLayout(this);
-        intro.setOrientation(LinearLayout.VERTICAL);
-        intro.setGravity(Gravity.CENTER);
-        intro.setPadding(dp(28), dp(28), dp(28), dp(28));
-        root.addView(intro, new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT
-        ));
+        LinearLayout intro = makeColumn(Gravity.CENTER, 28);
+        root.addView(intro, matchParent());
 
-        TextView mark = makeText("SYSTEM // ALERT", 13, Color.rgb(255, 60, 80), true);
-        mark.setGravity(Gravity.CENTER);
-        mark.setLetterSpacing(0.18f);
-        intro.addView(mark, fullWidth());
-        addGap(intro, 26);
+        TextView header = makeText("BOOT SEQUENCE // 01", 12, 0xFFFF465C, true);
+        header.setGravity(Gravity.CENTER);
+        intro.addView(header, fullWidth());
+        addGap(intro, 28);
 
-        TextView title = makeText("SYSTEM DIAGNOSTIC", 25, Color.WHITE, true);
+        TextView title = makeText("SYSTEM DIAGNOSTIC", 27, Color.WHITE, true);
         title.setGravity(Gravity.CENTER);
         intro.addView(title, fullWidth());
         addGap(intro, 14);
 
-        TextView detail = makeText(
-                "Memindai antarmuka perangkat...\nMenyiapkan simulasi visual.",
-                14, Color.rgb(180, 190, 205), false);
+        TextView detail = makeText("Analyzing system state...\nChecking critical services...", 14, 0xFFADB8C8, false);
         detail.setGravity(Gravity.CENTER);
         detail.setLineSpacing(dp(6), 1f);
         intro.addView(detail, fullWidth());
-        addGap(intro, 28);
+        addGap(intro, 30);
 
         ProgressBar pulse = new ProgressBar(this);
         pulse.setIndeterminate(true);
         intro.addView(pulse, new LinearLayout.LayoutParams(dp(42), dp(42)));
 
-        AlphaAnimation fade = new AlphaAnimation(0f, 1f);
-        fade.setDuration(700);
-        intro.startAnimation(fade);
+        fadeIn(intro, 700);
         root.postDelayed(() -> {
-            if (!isFinishing() && state == STATE_VIDEO) showFakeShutdown();
+            if (!isFinishing() && state == STATE_VIDEO) showFakeFailure();
         }, 4200L);
     }
 
-    private void showFakeShutdown() {
+    private void showFakeFailure() {
         if (isFinishing() || state != STATE_VIDEO) return;
-        state = STATE_SHUTDOWN_FAKE;
+        state = STATE_FAKE_FAILURE;
         root.removeAllViews();
-        root.setBackgroundColor(Color.rgb(2, 3, 5));
+        root.setBackgroundColor(0xFF020307);
 
-        LinearLayout panel = new LinearLayout(this);
-        panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setGravity(Gravity.CENTER_VERTICAL);
-        panel.setPadding(dp(28), dp(30), dp(28), dp(30));
-        root.addView(panel, new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT
-        ));
+        LinearLayout panel = makeColumn(Gravity.CENTER_VERTICAL, 28);
+        root.addView(panel, matchParent());
 
-        TextView brand = makeText("ANDROID // SYSTEM DIAGNOSTIC", 12, Color.LTGRAY, true);
-        brand.setLetterSpacing(0.12f);
+        TextView brand = makeText("SYSTEM // KERNEL MONITOR", 11, 0xFF9BA6B6, true);
+        brand.setLetterSpacing(0.13f);
         panel.addView(brand, fullWidth());
         addGap(panel, 34);
 
-        TextView error = makeText("CRITICAL SYSTEM ERROR", 25, Color.rgb(255, 55, 74), true);
+        TextView error = makeText("SYSTEM FAILURE", 31, 0xFFFF334F, true);
         panel.addView(error, fullWidth());
-        addGap(panel, 12);
+        addGap(panel, 13);
 
         TextView explanation = makeText(
-                "A fatal exception has been detected.\nPreparing simulated power sequence...",
-                15, Color.rgb(205, 209, 216), false);
+                "A critical system exception was detected.\nPreparing secure recovery environment...",
+                14, 0xFFD1D7E0, false);
         explanation.setLineSpacing(dp(5), 1f);
         panel.addView(explanation, fullWidth());
         addGap(panel, 34);
 
-        statusLine = makeText("Stopping background processes...", 13, Color.WHITE, false);
-        panel.addView(statusLine, fullWidth());
+        TextView status = makeText("Stopping user interface services...", 12, Color.WHITE, false);
+        panel.addView(status, fullWidth());
         addGap(panel, 12);
 
-        progressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
-        progressBar.setMax(100);
-        progressBar.setProgress(0);
-        progressBar.setProgressTintList(android.content.res.ColorStateList.valueOf(Color.rgb(255, 55, 74)));
-        progressBar.setProgressBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.rgb(42, 44, 50)));
-        LinearLayout.LayoutParams progressParams = fullWidth();
-        progressParams.height = dp(5);
-        panel.addView(progressBar, progressParams);
+        ProgressBar bar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+        bar.setMax(100);
+        bar.setProgress(0);
+        bar.setProgressTintList(android.content.res.ColorStateList.valueOf(0xFFFF334F));
+        bar.setProgressBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFF292D35));
+        LinearLayout.LayoutParams barParams = fullWidth();
+        barParams.height = dp(5);
+        panel.addView(bar, barParams);
         addGap(panel, 10);
 
-        percentLine = makeText("0%", 12, Color.LTGRAY, true);
-        percentLine.setGravity(Gravity.RIGHT);
-        panel.addView(percentLine, fullWidth());
-        addGap(panel, 30);
+        TextView percent = makeText("0%", 12, 0xFFB7C0CE, true);
+        percent.setGravity(Gravity.RIGHT);
+        panel.addView(percent, fullWidth());
 
-        TextView footer = makeText("SIMULASI SAJA • BACK UNTUK KELUAR", 10, Color.GRAY, true);
-        footer.setLetterSpacing(0.07f);
-        panel.addView(footer, fullWidth());
-
-        AlphaAnimation fade = new AlphaAnimation(0f, 1f);
-        fade.setDuration(450);
-        panel.startAnimation(fade);
-
-        shutdownAnimator = ValueAnimator.ofInt(0, 100);
-        shutdownAnimator.setDuration(3300L);
-        shutdownAnimator.addUpdateListener(animation -> {
+        fadeIn(panel, 450);
+        progressAnimator = ValueAnimator.ofInt(0, 100);
+        progressAnimator.setDuration(3600L);
+        progressAnimator.addUpdateListener(animation -> {
             int value = (Integer) animation.getAnimatedValue();
-            progressBar.setProgress(value);
-            percentLine.setText(String.format(Locale.US, "%d%%", value));
-            if (value < 30) {
-                statusLine.setText("Stopping background processes...");
-            } else if (value < 65) {
-                statusLine.setText("Unmounting system interface...");
-            } else if (value < 95) {
-                statusLine.setText("Closing display services...");
-            } else {
-                statusLine.setText("Power sequence complete.");
-            }
+            bar.setProgress(value);
+            percent.setText(String.format(Locale.US, "%d%%", value));
+            if (value < 35) status.setText("Stopping user interface services...");
+            else if (value < 70) status.setText("Checking recovery partition...");
+            else if (value < 96) status.setText("Preparing secure boot...");
+            else status.setText("Recovery environment ready.");
         });
-        shutdownAnimator.addListener(new android.animation.AnimatorListenerAdapter() {
+        progressAnimator.addListener(new android.animation.AnimatorListenerAdapter() {
             @Override public void onAnimationEnd(Animator animation) {
-                showBriefBlackout();
+                showCodeGate();
             }
         });
-        shutdownAnimator.start();
+        progressAnimator.start();
     }
 
-    private void showBriefBlackout() {
+    private void showCodeGate() {
         if (isFinishing()) return;
-        state = STATE_BLACKOUT;
+        state = STATE_CODE_GATE;
+        demoCode.setLength(0);
+        root.removeAllViews();
+        root.setBackgroundColor(0xFF03060C);
+
+        LinearLayout panel = makeColumn(Gravity.CENTER_VERTICAL, 22);
+        root.addView(panel, matchParent());
+
+        TextView eyebrow = makeText("SECURE BOOT  /  RECOVERY MODE", 11, 0xFF9CA9BA, true);
+        eyebrow.setLetterSpacing(0.10f);
+        panel.addView(eyebrow, fullWidth());
+        addGap(panel, 22);
+
+        TextView title = makeText("DEVICE RECOVERY", 27, Color.WHITE, true);
+        panel.addView(title, fullWidth());
+        addGap(panel, 10);
+
+        TextView description = makeText(
+                "Verification required to restore the system session.",
+                14, 0xFFC1CAD7, false);
+        description.setLineSpacing(dp(4), 1f);
+        panel.addView(description, fullWidth());
+        addGap(panel, 26);
+
+        attemptsLine = makeText("ATTEMPTS REMAINING: 10 / 10", 12, 0xFFFF5368, true);
+        panel.addView(attemptsLine, fullWidth());
+        addGap(panel, 12);
+
+        codeDots = makeText("— — — — — —", 26, Color.WHITE, true);
+        codeDots.setGravity(Gravity.CENTER);
+        codeDots.setLetterSpacing(0.18f);
+        codeDots.setPadding(0, dp(16), 0, dp(16));
+        codeDots.setBackground(roundRect(0xFF111824, 14, 0xFF303B4B));
+        panel.addView(codeDots, fullWidth());
+        addGap(panel, 12);
+
+        responseLine = makeText("ENTER RECOVERY CODE", 11, 0xFF9CA9BA, true);
+        responseLine.setGravity(Gravity.CENTER);
+        panel.addView(responseLine, fullWidth());
+        addGap(panel, 14);
+
+        GridLayout keypad = new GridLayout(this);
+        keypad.setColumnCount(3);
+        keypad.setRowCount(4);
+        keypad.setAlignmentMode(GridLayout.ALIGN_BOUNDS);
+        keypad.setUseDefaultMargins(false);
+        LinearLayout.LayoutParams keypadParams = fullWidth();
+        keypadParams.gravity = Gravity.CENTER_HORIZONTAL;
+        panel.addView(keypad, keypadParams);
+
+        String[] keys = {"1","2","3","4","5","6","7","8","9","DEL","0","ENTER"};
+        for (String key : keys) {
+            Button button = new Button(this);
+            button.setText(key);
+            button.setTextSize(15);
+            button.setTextColor(Color.WHITE);
+            button.setAllCaps(true);
+            button.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+            button.setBackground(roundRect(0xFF172231, 12, 0xFF344154));
+            GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
+            lp.width = 0;
+            lp.height = dp(54);
+            lp.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+            lp.setMargins(dp(4), dp(4), dp(4), dp(4));
+            keypad.addView(button, lp);
+            button.setOnClickListener(v -> {
+                if ("DEL".equals(key)) deleteCodeDigit();
+                else if ("ENTER".equals(key)) submitDemoCode();
+                else appendCodeDigit(key);
+            });
+        }
+
+        addGap(panel, 14);
+        Button giveUp = new Button(this);
+        giveUp.setText("GIVE UP  /  RESTART");
+        giveUp.setTextColor(Color.WHITE);
+        giveUp.setTextSize(12);
+        giveUp.setAllCaps(true);
+        giveUp.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+        giveUp.setBackground(roundRect(0xFF681E2B, 12, 0xFFB33147));
+        panel.addView(giveUp, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(50)));
+        giveUp.setOnClickListener(v -> showFakeRestart());
+
+        addGap(panel, 12);
+        TextView safety = makeText(
+                "SIMULATION CODE ONLY — NEVER ENTER YOUR REAL DEVICE PIN.",
+                9, 0xFFFFC46B, true);
+        safety.setGravity(Gravity.CENTER);
+        safety.setLineSpacing(dp(3), 1f);
+        panel.addView(safety, fullWidth());
+
+        fadeIn(panel, 400);
+    }
+
+    private void appendCodeDigit(String digit) {
+        if (state != STATE_CODE_GATE || demoCode.length() >= MAX_CODE_LENGTH) return;
+        demoCode.append(digit);
+        updateCodeDots();
+    }
+
+    private void deleteCodeDigit() {
+        if (state != STATE_CODE_GATE || demoCode.length() == 0) return;
+        demoCode.deleteCharAt(demoCode.length() - 1);
+        updateCodeDots();
+    }
+
+    private void updateCodeDots() {
+        if (codeDots == null) return;
+        if (demoCode.length() == 0) {
+            codeDots.setText("— — — — — —");
+            return;
+        }
+        StringBuilder dots = new StringBuilder();
+        for (int i = 0; i < demoCode.length(); i++) {
+            if (i > 0) dots.append(' ');
+            dots.append('•');
+        }
+        codeDots.setText(dots.toString());
+    }
+
+    private void submitDemoCode() {
+        if (state != STATE_CODE_GATE) return;
+        if (TextUtils.isEmpty(demoCode)) {
+            responseLine.setText("ENTER A SIMULATION CODE");
+            return;
+        }
+
+        // Deliberately discard the entered value. It is not stored, logged or transmitted.
+        demoCode.setLength(0);
+        updateCodeDots();
+        attemptsLeft--;
+        attemptsLine.setText("ATTEMPTS REMAINING: " + attemptsLeft + " / " + MAX_ATTEMPTS);
+        responseLine.setText("ACCESS DENIED  //  RETRY REQUIRED");
+        responseLine.setTextColor(0xFFFF5368);
+
+        if (attemptsLeft <= 0) {
+            root.postDelayed(this::showFakeRestart, 650L);
+        }
+    }
+
+    private void showFakeRestart() {
+        if (isFinishing() || state == STATE_FAKE_RESTART) return;
+        state = STATE_FAKE_RESTART;
+        demoCode.setLength(0);
+        if (progressAnimator != null) progressAnimator.cancel();
         root.removeAllViews();
         root.setBackgroundColor(Color.BLACK);
-        root.setOnClickListener(v -> showPrankReveal());
-        root.postDelayed(() -> {
-            if (state == STATE_BLACKOUT && !isFinishing()) showPrankReveal();
-        }, 1100L);
+
+        LinearLayout panel = makeColumn(Gravity.CENTER, 28);
+        root.addView(panel, matchParent());
+
+        TextView symbol = makeText("SYSTEM", 15, 0xFF9EABB9, true);
+        symbol.setGravity(Gravity.CENTER);
+        symbol.setLetterSpacing(0.25f);
+        panel.addView(symbol, fullWidth());
+        addGap(panel, 22);
+
+        TextView title = makeText("RESTARTING", 29, Color.WHITE, true);
+        title.setGravity(Gravity.CENTER);
+        panel.addView(title, fullWidth());
+        addGap(panel, 12);
+
+        TextView status = makeText("Restoring system session...", 12, 0xFFABB6C4, false);
+        status.setGravity(Gravity.CENTER);
+        panel.addView(status, fullWidth());
+        addGap(panel, 25);
+
+        ProgressBar bar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+        bar.setMax(100);
+        bar.setProgress(0);
+        bar.setProgressTintList(android.content.res.ColorStateList.valueOf(0xFF65A7FF));
+        LinearLayout.LayoutParams bp = fullWidth();
+        bp.height = dp(4);
+        panel.addView(bar, bp);
+        addGap(panel, 12);
+
+        TextView percent = makeText("0%", 11, 0xFF8794A5, false);
+        percent.setGravity(Gravity.CENTER);
+        panel.addView(percent, fullWidth());
+
+        fadeIn(panel, 350);
+        progressAnimator = ValueAnimator.ofInt(0, 100);
+        progressAnimator.setDuration(3200L);
+        progressAnimator.addUpdateListener(animation -> {
+            int value = (Integer) animation.getAnimatedValue();
+            bar.setProgress(value);
+            percent.setText(value + "%");
+            if (value > 78) status.setText("System session restored.");
+        });
+        progressAnimator.addListener(new android.animation.AnimatorListenerAdapter() {
+            @Override public void onAnimationEnd(Animator animation) {
+                // End only this app. The Android device itself is never rebooted.
+                finish();
+            }
+        });
+        progressAnimator.start();
     }
 
-    private void showPrankReveal() {
-        if (isFinishing() || state == STATE_REVEAL) return;
-        state = STATE_REVEAL;
-        root.setOnClickListener(null);
-        root.removeAllViews();
-        root.setBackgroundColor(Color.rgb(7, 12, 10));
-
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setGravity(Gravity.CENTER);
-        content.setPadding(dp(28), dp(28), dp(28), dp(28));
-        root.addView(content, new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT
-        ));
-
-        TextView emoji = makeText("😈", 48, Color.WHITE, false);
-        emoji.setGravity(Gravity.CENTER);
-        content.addView(emoji, fullWidth());
-        addGap(content, 16);
-
-        TextView title = makeText("KENA PRANK!", 29, Color.rgb(91, 245, 151), true);
-        title.setGravity(Gravity.CENTER);
-        content.addView(title, fullWidth());
-        addGap(content, 16);
-
-        TextView message = makeText(
-                "Tenang, HP kamu aman.\nTidak ada shutdown sungguhan, data dihapus, atau sistem yang diubah.",
-                16, Color.rgb(225, 232, 228), false);
-        message.setGravity(Gravity.CENTER);
-        message.setLineSpacing(dp(7), 1f);
-        content.addView(message, fullWidth());
-        addGap(content, 30);
-
-        Button exit = new Button(this);
-        exit.setText("TUTUP PRANK");
-        exit.setTextColor(Color.BLACK);
-        exit.setTextSize(14);
-        exit.setAllCaps(false);
-        exit.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        GradientDrawable buttonBg = new GradientDrawable();
-        buttonBg.setColor(Color.rgb(91, 245, 151));
-        buttonBg.setCornerRadius(dp(14));
-        exit.setBackground(buttonBg);
-        content.addView(exit, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(54)));
-        exit.setOnClickListener(v -> exitPrank());
-
-        AlphaAnimation reveal = new AlphaAnimation(0f, 1f);
-        reveal.setDuration(500);
-        content.startAnimation(reveal);
+    private LinearLayout makeColumn(int gravity, int horizontalPadding) {
+        LinearLayout column = new LinearLayout(this);
+        column.setOrientation(LinearLayout.VERTICAL);
+        column.setGravity(gravity);
+        column.setPadding(dp(horizontalPadding), dp(24), dp(horizontalPadding), dp(24));
+        return column;
     }
 
     private TextView makeText(String value, int sizeSp, int color, boolean bold) {
@@ -321,16 +422,35 @@ public class MainActivity extends Activity {
         return text;
     }
 
+    private GradientDrawable roundRect(int color, int radiusDp, int strokeColor) {
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(color);
+        bg.setCornerRadius(dp(radiusDp));
+        bg.setStroke(dp(1), strokeColor);
+        return bg;
+    }
+
+    private FrameLayout.LayoutParams matchParent() {
+        return new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT);
+    }
+
     private LinearLayout.LayoutParams fullWidth() {
         return new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        );
+                LinearLayout.LayoutParams.WRAP_CONTENT);
     }
 
     private void addGap(LinearLayout parent, int heightDp) {
         View gap = new View(this);
         parent.addView(gap, new LinearLayout.LayoutParams(1, dp(heightDp)));
+    }
+
+    private void fadeIn(View view, long duration) {
+        AlphaAnimation animation = new AlphaAnimation(0f, 1f);
+        animation.setDuration(duration);
+        view.startAnimation(animation);
     }
 
     private int dp(int value) {
@@ -339,12 +459,19 @@ public class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        exitPrank();
+        // A normal Android exit must always remain available.
+        finish();
     }
 
     @Override
     protected void onDestroy() {
-        if (shutdownAnimator != null) shutdownAnimator.cancel();
+        if (progressAnimator != null) progressAnimator.cancel();
+        if (activeVideo != null) {
+            try {
+                activeVideo.stopPlayback();
+            } catch (RuntimeException ignored) { }
+        }
+        demoCode.setLength(0);
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         super.onDestroy();
     }
