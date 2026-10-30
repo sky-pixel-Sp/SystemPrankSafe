@@ -221,13 +221,6 @@ public class MainActivity extends Activity {
                 Uri.parse("https://github.com/sky-pixel-Sp/SystemPrankSafe/releases/latest"))));
         page.addView(download, fullWidth());
 
-        TextView download = text(tr("UNDUH VERSI TERBARU", "DOWNLOAD LATEST VERSION"), 9, 0xFFB8C2CE, true);
-        download.setGravity(Gravity.CENTER);
-        download.setPadding(0, dp(10), 0, dp(2));
-        download.setOnClickListener(v -> startActivity(new Intent(Intent.ACTION_VIEW,
-                Uri.parse("https://github.com/sky-pixel-Sp/SystemPrankSafe/releases/latest"))));
-        page.addView(download, fullWidth());
-
         TextView footer = text(tr("DEMO VISUAL LOKAL  •  KEMBALI UNTUK KELUAR", "LOCAL VISUAL DEMO  •  BACK TO EXIT"), 9, 0xFF69727D, true);
         footer.setGravity(Gravity.CENTER);
         footer.setPadding(0, dp(12), 0, dp(2));
