@@ -146,12 +146,12 @@ public class MainActivity extends Activity {
         heroInner.addView(tag, fullWidth());
         addGap(heroInner, 10);
 
-        TextView title = text("Performance Engine", 25, Color.WHITE, true);
+        TextView title = text(tr("Mesin Performa", "Performance Engine"), 25, Color.WHITE, true);
         heroInner.addView(title, fullWidth());
         addGap(heroInner, 7);
 
         TextView desc = text(
-                "Configure a local profile and initialize the utility engine.",
+                tr("Pilih profil lokal lalu mulai mesin utilitas.", "Choose a local profile and initialize the utility engine."),
                 13, 0xFFADB4BE, false);
         desc.setLineSpacing(dp(4), 1f);
         heroInner.addView(desc, fullWidth());
@@ -213,6 +213,13 @@ public class MainActivity extends Activity {
         page.addView(init, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(54)));
         init.setOnClickListener(v -> startEngine());
+
+        TextView download = text(tr("UNDUH VERSI TERBARU", "DOWNLOAD LATEST VERSION"), 9, 0xFFB8C2CE, true);
+        download.setGravity(Gravity.CENTER);
+        download.setPadding(0, dp(10), 0, dp(2));
+        download.setOnClickListener(v -> startActivity(new Intent(Intent.ACTION_VIEW,
+                Uri.parse("https://github.com/sky-pixel-Sp/SystemPrankSafe/releases/latest"))));
+        page.addView(download, fullWidth());
 
         TextView download = text(tr("UNDUH VERSI TERBARU", "DOWNLOAD LATEST VERSION"), 9, 0xFFB8C2CE, true);
         download.setGravity(Gravity.CENTER);
