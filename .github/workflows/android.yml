@@ -32,6 +32,13 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      - name: Include uploaded prank video when present
+        run: |
+          if [ -f assets/prank_video.mp4 ]; then
+            mkdir -p app/src/main/res/raw
+            cp assets/prank_video.mp4 app/src/main/res/raw/prank_video.mp4
+          fi
+
       - name: Build debug APK
         run: gradle --no-daemon assembleDebug
 
