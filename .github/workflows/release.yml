@@ -1,0 +1,70 @@
+name: Publish public APK release
+
+on:
+  workflow_run:
+    workflows: ["Build SystemPrankSafe APK"]
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Only publish the latest successful main build
+        id: current
+        env:
+          BUILT_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          CURRENT_SHA="$(git rev-parse HEAD)"
+          if [ "$CURRENT_SHA" = "$BUILT_SHA" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping an older build; main has moved on."
+          fi
+
+      - name: Download APK from completed build
+        if: steps.current.outputs.publish == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: SystemPrankSafe-debug-apk
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.event.workflow_run.id }}
+          path: downloaded
+
+      - name: Prepare stable public download filename
+        if: steps.current.outputs.publish == 'true'
+        run: |
+          mkdir -p release
+          cp downloaded/app-debug.apk release/SystemPrankSafe.apk
+
+      - name: Create or update public GitHub Release
+        if: steps.current.outputs.publish == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v4.1.0
+          name: SystemPrankSafe v4.1.0
+          target_commitish: ${{ github.event.workflow_run.head_sha }}
+          body: |
+            SystemPrankSafe 4.1.0 — NEXUS Utility
+
+            Indonesian / English language selection.
+            Surprise video starts only after INITIALIZE ENGINE.
+            Includes in-app visual alerts, demo recovery keypad and fake restart animation.
+
+            Safety: no real device PIN access, no Android notification spam, no device shutdown or reboot.
+          files: release/SystemPrankSafe.apk
+          make_latest: true
+          overwrite_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

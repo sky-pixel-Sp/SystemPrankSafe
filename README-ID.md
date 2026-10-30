@@ -1,34 +1,59 @@
-# SystemPrankSafe 4.0 — NEXUS Utility
+# SystemPrankSafe 4.1.0 — NEXUS Utility
 
-Aplikasi Android untuk simulasi visual fiksi bergaya game utility/injector. Desain awal sengaja sederhana seperti dashboard tool; video kejutan baru mulai setelah tombol **INITIALIZE ENGINE** ditekan.
+[**⬇ Download latest APK / Unduh APK terbaru**](https://github.com/sky-pixel-Sp/SystemPrankSafe/releases/latest/download/SystemPrankSafe.apk)  
+[Open public download page / Buka halaman unduhan](https://github.com/sky-pixel-Sp/SystemPrankSafe/releases/latest)
 
-## Urutan simulasi
-1. Saat dibuka, tampil dashboard NEXUS Performance Engine dengan pilihan profil Free Fire / Roblox.
-2. Pengguna menekan **INITIALIZE ENGINE**.
-3. Progress inisialisasi lokal berjalan sekitar 2 detik.
-4. Video MP4 dari folder `assets/` diputar fullscreen bersama audionya.
-5. Setelah video selesai, muncul simulasi SYSTEM FAILURE.
-6. Muncul 50 alert visual di dalam aplikasi (bukan notifikasi Android).
-7. Recovery keypad memberi 10 kesempatan memasukkan kode demo.
-8. Jika kesempatan habis atau tombol lanjut ditekan, muncul animasi RESTARTING lalu Activity ditutup. HP tidak direstart.
+---
 
-## Keamanan
-- Tidak ada Device Admin, Accessibility Service, Lock Task / Screen Pinning, root, overlay, atau izin sensitif.
-- Tidak ada akses ke PIN layar perangkat. Kode recovery hanya input demo yang langsung dibuang, tidak disimpan, dicatat, atau dikirim.
-- Tidak mengirim notifikasi Android; 50 alert hanya kartu visual dalam aplikasi.
-- Tidak ada perintah shutdown atau reboot perangkat.
+## Bahasa Indonesia
+
+SystemPrankSafe adalah simulasi visual fiksi bergaya game utility/injector. Aplikasi sekarang mendukung **Bahasa Indonesia dan English**. Tekan tombol **ID / EN** di dashboard untuk mengganti bahasa; pilihan akan diingat.
+
+### Cara kerja
+1. Dashboard NEXUS tampil saat aplikasi dibuka.
+2. Pilih profil tampilan Free Fire atau Roblox.
+3. Tekan **MULAI MESIN / INITIALIZE ENGINE**.
+4. Setelah loading singkat, video kejutan dari folder `assets/` diputar fullscreen bersama suaranya.
+5. Setelah video selesai, muncul simulasi SYSTEM FAILURE, 50 alert visual, recovery keypad dengan 10 percobaan, lalu animasi restart palsu.
+6. Animasi restart hanya menutup aplikasi. HP tidak direstart.
+
+### Keamanan
+- Tidak mengakses PIN layar perangkat.
+- Kode recovery hanyalah input demo yang langsung dibuang dan tidak disimpan/dikirim.
+- Tidak ada Device Admin, Accessibility Service, Lock Task / Screen Pinning, root, overlay, shutdown, atau reboot perangkat.
+- 50 alert hanya tampilan di dalam aplikasi, bukan notifikasi Android.
+- Tidak menyuntikkan kode ke Free Fire atau Roblox.
 - Tombol Back Android tetap menjadi jalan keluar.
-- Tidak menyuntikkan kode ke Free Fire atau Roblox; pilihan profil hanya tampilan.
 
-## Video kejutan
-Workflow mencari MP4 pertama di folder `assets/` dan menyalinnya sebagai resource lokal `prank_video.mp4`. Video dan gambar antarmuka tidak memerlukan akses internet.
+## English
 
-## Build
-GitHub Actions membangun APK debug setiap push ke `main`. Artifact: `SystemPrankSafe-debug-apk`.
+SystemPrankSafe is a fictional game-utility/injector-style visual simulation. It supports **Bahasa Indonesia and English**. Tap **ID / EN** on the dashboard to switch language; the choice is remembered.
 
+### Flow
+1. The NEXUS dashboard appears when the app opens.
+2. Choose the Free Fire or Roblox visual profile.
+3. Tap **INITIALIZE ENGINE**.
+4. After a short loading sequence, the surprise video from `assets/` plays fullscreen with audio.
+5. After playback, the app shows a simulated system failure, 50 in-app visual alerts, a recovery keypad with 10 demo attempts, and a fake restart animation.
+6. The fake restart only closes the app. The phone is never rebooted.
+
+### Safety
+- Does not access the phone's real lock-screen PIN.
+- Recovery input is demo-only, immediately discarded, and never stored or transmitted.
+- No Device Admin, Accessibility Service, Lock Task / Screen Pinning, root, overlay, shutdown, or device reboot.
+- The 50 alerts are in-app visuals, not Android notifications.
+- Does not inject code into Free Fire or Roblox.
+- Android Back remains available as an exit.
+
+---
+
+## Project details
 - Application ID: `com.my.newproject5`
 - Launcher label: Game Utility
-- Version: 4.0
-- Minimum Android: API 23
+- Version: `4.1.0`
+- Minimum Android: API 23 (Android 6)
 - Compile / Target SDK: 35
-- Output: `app/build/outputs/apk/debug/app-debug.apk`
+- Build: GitHub Actions (debug APK)
+- Latest APK: [SystemPrankSafe.apk](https://github.com/sky-pixel-Sp/SystemPrankSafe/releases/latest/download/SystemPrankSafe.apk)
+
+The release download is public and does not require a GitHub account.
