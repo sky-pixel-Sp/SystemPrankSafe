@@ -9,6 +9,8 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
@@ -20,50 +22,65 @@ import android.widget.FrameLayout;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.VideoView;
 
 import java.util.Locale;
 
 /**
- * Full-screen fictional system-failure simulation.
- * It never reads the device lock PIN, changes device credentials,
- * locks the device, invokes power actions, or performs a real reboot.
+ * A fictional game-utility themed visual simulation.
+ * The surprise video starts only after the user taps INITIALIZE.
+ * No device PIN, data, notification service, or power controls are accessed.
  */
 public class MainActivity extends Activity {
-    private static final int STATE_VIDEO = 0;
-    private static final int STATE_FAKE_FAILURE = 1;
-    private static final int STATE_CODE_GATE = 2;
-    private static final int STATE_FAKE_RESTART = 3;
+    private static final int HOME = 0;
+    private static final int LOADING = 1;
+    private static final int VIDEO = 2;
+    private static final int FAILURE = 3;
+    private static final int ALERTS = 4;
+    private static final int RECOVERY = 5;
+    private static final int FAKE_RESTART = 6;
 
     private static final int MAX_ATTEMPTS = 10;
     private static final int MAX_CODE_LENGTH = 8;
 
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private final StringBuilder demoCode = new StringBuilder();
     private FrameLayout root;
+    private VideoView activeVideo;
+    private ValueAnimator animator;
     private TextView codeDots;
     private TextView attemptsLine;
     private TextView responseLine;
-    private StringBuilder demoCode = new StringBuilder();
-    private int state = STATE_VIDEO;
+    private TextView alertCounter;
+    private LinearLayout alertList;
+    private int state = HOME;
+    private int selectedProfile = 0;
     private int attemptsLeft = MAX_ATTEMPTS;
-    private ValueAnimator progressAnimator;
-    private VideoView activeVideo;
+    private int alertCount = 0;
+
+    private final String[] alertMessages = {
+            "Unverified module signature", "Runtime integrity mismatch",
+            "Memory map validation failed", "Unexpected process response",
+            "Virtual module handshake rejected", "Recovery service timeout",
+            "Engine checksum mismatch", "Session state unavailable",
+            "Injected module was not recognized", "System monitor raised an exception"
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        getWindow().setStatusBarColor(Color.BLACK);
-        getWindow().setNavigationBarColor(Color.BLACK);
+        getWindow().setStatusBarColor(Color.rgb(13, 15, 18));
+        getWindow().setNavigationBarColor(Color.rgb(13, 15, 18));
         enterImmersiveMode();
 
         root = new FrameLayout(this);
-        root.setBackgroundColor(Color.BLACK);
+        root.setBackgroundColor(0xFF101216);
         setContentView(root);
-
-        // Start the local bundled video immediately. No screen pinning or lock-task mode.
-        playUserVideoOrFallback();
+        showHome();
     }
 
     private void enterImmersiveMode() {
@@ -78,242 +95,476 @@ public class MainActivity extends Activity {
         );
     }
 
-    private void playUserVideoOrFallback() {
-        state = STATE_VIDEO;
+    private void showHome() {
+        state = HOME;
+        root.removeAllViews();
+        root.setBackgroundColor(0xFF101216);
+
+        LinearLayout page = column(0xFF101216, 20, 20, 20, 18);
+        root.addView(page, matchParent());
+
+        LinearLayout top = new LinearLayout(this);
+        top.setOrientation(LinearLayout.HORIZONTAL);
+        top.setGravity(Gravity.CENTER_VERTICAL);
+        page.addView(top, fullWidth());
+
+        TextView brand = text("NEXUS", 22, Color.WHITE, true);
+        brand.setLetterSpacing(0.08f);
+        top.addView(brand, new LinearLayout.LayoutParams(0, dp(34), 1f));
+
+        TextView build = text("UTILITY  /  4.0.1", 10, 0xFF9299A3, true);
+        build.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
+        top.addView(build, wrap());
+
+        addGap(page, 22);
+
+        LinearLayout hero = card(0xFF191D23, 18, 0xFF303640);
+        page.addView(hero, fullWidth());
+        LinearLayout heroInner = column(0x00000000, 18, 18, 18, 18);
+        hero.addView(heroInner, fullWidth());
+
+        TextView tag = text("MOBILE GAME UTILITY", 10, 0xFFE26A62, true);
+        tag.setLetterSpacing(0.14f);
+        heroInner.addView(tag, fullWidth());
+        addGap(heroInner, 10);
+
+        TextView title = text("Performance Engine", 25, Color.WHITE, true);
+        heroInner.addView(title, fullWidth());
+        addGap(heroInner, 7);
+
+        TextView desc = text(
+                "Configure a local profile and initialize the utility engine.",
+                13, 0xFFADB4BE, false);
+        desc.setLineSpacing(dp(4), 1f);
+        heroInner.addView(desc, fullWidth());
+        addGap(heroInner, 18);
+
+        LinearLayout statusRow = new LinearLayout(this);
+        statusRow.setOrientation(LinearLayout.HORIZONTAL);
+        statusRow.setGravity(Gravity.CENTER_VERTICAL);
+        statusRow.setPadding(dp(11), dp(10), dp(11), dp(10));
+        statusRow.setBackground(roundRect(0xFF11151A, 10, 0xFF303740));
+        heroInner.addView(statusRow, fullWidth());
+
+        View dot = new View(this);
+        dot.setBackground(roundRect(0xFF66C58B, 20, 0xFF66C58B));
+        statusRow.addView(dot, new LinearLayout.LayoutParams(dp(8), dp(8)));
+        TextView ready = text("ENGINE READY", 10, 0xFFC8D0D8, true);
+        LinearLayout.LayoutParams readyParams = wrap();
+        readyParams.leftMargin = dp(9);
+        statusRow.addView(ready, readyParams);
+        View spacer = new View(this);
+        statusRow.addView(spacer, new LinearLayout.LayoutParams(0, 1, 1f));
+        TextView local = text("LOCAL", 9, 0xFF7F8995, true);
+        statusRow.addView(local, wrap());
+
+        addGap(page, 22);
+
+        TextView choose = text("SELECT PROFILE", 10, 0xFF929AA5, true);
+        choose.setLetterSpacing(0.12f);
+        page.addView(choose, fullWidth());
+        addGap(page, 10);
+
+        LinearLayout profiles = new LinearLayout(this);
+        profiles.setOrientation(LinearLayout.HORIZONTAL);
+        page.addView(profiles, fullWidth());
+        profiles.addView(profileButton("FREE FIRE", 0), new LinearLayout.LayoutParams(0, dp(58), 1f));
+        View profileGap = new View(this);
+        profiles.addView(profileGap, new LinearLayout.LayoutParams(dp(10), 1));
+        profiles.addView(profileButton("ROBLOX", 1), new LinearLayout.LayoutParams(0, dp(58), 1f));
+
+        addGap(page, 20);
+
+        TextView moduleTitle = text("MODULE STATUS", 10, 0xFF929AA5, true);
+        moduleTitle.setLetterSpacing(0.12f);
+        page.addView(moduleTitle, fullWidth());
+        addGap(page, 9);
+
+        LinearLayout modulePanel = card(0xFF171B20, 13, 0xFF2C333C);
+        page.addView(modulePanel, fullWidth());
+        LinearLayout modules = column(0x00000000, 14, 12, 14, 12);
+        modulePanel.addView(modules, fullWidth());
+        addModuleRow(modules, "Runtime core", "READY");
+        addModuleRow(modules, "Profile interface", "READY");
+        addModuleRow(modules, "Local cache", "STANDBY");
+
+        View fill = new View(this);
+        page.addView(fill, new LinearLayout.LayoutParams(1, 0, 1f));
+
+        Button init = button("INITIALIZE ENGINE", 0xFFB8423D, 0xFFE96C61);
+        page.addView(init, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(54)));
+        init.setOnClickListener(v -> startEngine());
+
+        TextView footer = text("LOCAL VISUAL DEMO  •  BACK TO EXIT", 9, 0xFF69727D, true);
+        footer.setGravity(Gravity.CENTER);
+        footer.setPadding(0, dp(12), 0, dp(2));
+        page.addView(footer, fullWidth());
+
+        fadeIn(page, 350);
+    }
+
+    private View profileButton(String label, int profile) {
+        boolean selected = selectedProfile == profile;
+        Button button = button(label, selected ? 0xFF343941 : 0xFF191D23,
+                selected ? 0xFFE16A61 : 0xFF333B45);
+        button.setTextColor(selected ? Color.WHITE : 0xFFADB5BF);
+        button.setOnClickListener(v -> {
+            selectedProfile = profile;
+            showHome();
+        });
+        return button;
+    }
+
+    private void addModuleRow(LinearLayout parent, String name, String stateText) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        parent.addView(row, fullWidth());
+        TextView left = text(name, 12, 0xFFC3CAD2, false);
+        row.addView(left, new LinearLayout.LayoutParams(0, dp(27), 1f));
+        TextView right = text(stateText, 9, 0xFF7DC394, true);
+        row.addView(right, wrap());
+    }
+
+    private void startEngine() {
+        if (state != HOME) return;
+        state = LOADING;
+        root.removeAllViews();
+        root.setBackgroundColor(0xFF101216);
+
+        LinearLayout page = column(0xFF101216, 26, 26, 26, 26);
+        page.setGravity(Gravity.CENTER);
+        root.addView(page, matchParent());
+
+        TextView brand = text("NEXUS // ENGINE", 12, 0xFFE16A61, true);
+        brand.setGravity(Gravity.CENTER);
+        brand.setLetterSpacing(0.16f);
+        page.addView(brand, fullWidth());
+        addGap(page, 24);
+
+        TextView title = text("Initializing modules", 24, Color.WHITE, true);
+        title.setGravity(Gravity.CENTER);
+        page.addView(title, fullWidth());
+        addGap(page, 12);
+
+        TextView status = text("Loading runtime components...", 12, 0xFFABB4BF, false);
+        status.setGravity(Gravity.CENTER);
+        page.addView(status, fullWidth());
+        addGap(page, 22);
+
+        ProgressBar bar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+        bar.setMax(100);
+        bar.setProgress(0);
+        bar.setProgressTintList(android.content.res.ColorStateList.valueOf(0xFFE05A50));
+        bar.setProgressBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFF30353D));
+        LinearLayout.LayoutParams bp = fullWidth();
+        bp.height = dp(5);
+        page.addView(bar, bp);
+        addGap(page, 10);
+
+        TextView percent = text("0%", 11, 0xFF87919C, true);
+        percent.setGravity(Gravity.CENTER);
+        page.addView(percent, fullWidth());
+
+        String[] stages = {
+                "Loading runtime components...",
+                "Preparing selected profile...",
+                "Resolving local modules...",
+                "Starting engine session..."
+        };
+        animator = ValueAnimator.ofInt(0, 100);
+        animator.setDuration(1900L);
+        animator.addUpdateListener(a -> {
+            int value = (Integer) a.getAnimatedValue();
+            bar.setProgress(value);
+            percent.setText(value + "%");
+            int idx = Math.min(stages.length - 1, value / 26);
+            status.setText(stages[idx]);
+        });
+        animator.addListener(new android.animation.AnimatorListenerAdapter() {
+            @Override public void onAnimationEnd(Animator animation) {
+                if (state == LOADING) playSurpriseVideo();
+            }
+        });
+        fadeIn(page, 300);
+        animator.start();
+    }
+
+    private void playSurpriseVideo() {
+        if (isFinishing() || state != LOADING) return;
+        state = VIDEO;
+        root.removeAllViews();
+        root.setBackgroundColor(Color.BLACK);
+
         int videoId = getResources().getIdentifier("prank_video", "raw", getPackageName());
         if (videoId == 0) {
-            showIntroFallback();
+            showFailure();
             return;
         }
 
         activeVideo = new VideoView(this);
         activeVideo.setBackgroundColor(Color.BLACK);
-        root.removeAllViews();
-        root.addView(activeVideo, new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT
-        ));
-
-        Uri videoUri = Uri.parse("android.resource://" + getPackageName() + "/" + videoId);
-        activeVideo.setVideoURI(videoUri);
+        root.addView(activeVideo, matchParent());
+        Uri uri = Uri.parse("android.resource://" + getPackageName() + "/" + videoId);
+        activeVideo.setVideoURI(uri);
         activeVideo.setOnPreparedListener(player -> {
             player.setLooping(false);
             activeVideo.start();
         });
-        activeVideo.setOnCompletionListener(player -> showFakeFailure());
+        activeVideo.setOnCompletionListener(player -> showFailure());
         activeVideo.setOnErrorListener((player, what, extra) -> {
-            showIntroFallback();
+            showFailure();
             return true;
         });
     }
 
-    private void showIntroFallback() {
-        if (isFinishing() || state != STATE_VIDEO) return;
+    private void showFailure() {
+        if (isFinishing() || (state != VIDEO && state != LOADING)) return;
+        state = FAILURE;
+        if (activeVideo != null) {
+            try { activeVideo.stopPlayback(); } catch (RuntimeException ignored) { }
+            activeVideo = null;
+        }
         root.removeAllViews();
-        root.setBackgroundColor(Color.rgb(2, 4, 9));
+        root.setBackgroundColor(0xFF08090C);
 
-        LinearLayout intro = makeColumn(Gravity.CENTER, 28);
-        root.addView(intro, matchParent());
+        LinearLayout page = column(0x00000000, 25, 28, 25, 28);
+        root.addView(page, matchParent());
 
-        TextView header = makeText("BOOT SEQUENCE // 01", 12, 0xFFFF465C, true);
-        header.setGravity(Gravity.CENTER);
-        intro.addView(header, fullWidth());
-        addGap(intro, 28);
+        TextView small = text("NEXUS / RUNTIME MONITOR", 10, 0xFF929AA4, true);
+        small.setLetterSpacing(0.12f);
+        page.addView(small, fullWidth());
+        addGap(page, 34);
 
-        TextView title = makeText("SYSTEM DIAGNOSTIC", 27, Color.WHITE, true);
-        title.setGravity(Gravity.CENTER);
-        intro.addView(title, fullWidth());
-        addGap(intro, 14);
+        TextView headline = text("SYSTEM FAILURE", 30, 0xFFE34D4D, true);
+        page.addView(headline, fullWidth());
+        addGap(page, 12);
 
-        TextView detail = makeText("Analyzing system state...\nChecking critical services...", 14, 0xFFADB8C8, false);
-        detail.setGravity(Gravity.CENTER);
-        detail.setLineSpacing(dp(6), 1f);
-        intro.addView(detail, fullWidth());
-        addGap(intro, 30);
+        TextView detail = text(
+                "Unexpected runtime state. Recovery services are being initialized.",
+                13, 0xFFB9C1CB, false);
+        detail.setLineSpacing(dp(4), 1f);
+        page.addView(detail, fullWidth());
+        addGap(page, 32);
 
-        ProgressBar pulse = new ProgressBar(this);
-        pulse.setIndeterminate(true);
-        intro.addView(pulse, new LinearLayout.LayoutParams(dp(42), dp(42)));
-
-        fadeIn(intro, 700);
-        root.postDelayed(() -> {
-            if (!isFinishing() && state == STATE_VIDEO) showFakeFailure();
-        }, 4200L);
-    }
-
-    private void showFakeFailure() {
-        if (isFinishing() || state != STATE_VIDEO) return;
-        state = STATE_FAKE_FAILURE;
-        root.removeAllViews();
-        root.setBackgroundColor(0xFF020307);
-
-        LinearLayout panel = makeColumn(Gravity.CENTER_VERTICAL, 28);
-        root.addView(panel, matchParent());
-
-        TextView brand = makeText("SYSTEM // KERNEL MONITOR", 11, 0xFF9BA6B6, true);
-        brand.setLetterSpacing(0.13f);
-        panel.addView(brand, fullWidth());
-        addGap(panel, 34);
-
-        TextView error = makeText("SYSTEM FAILURE", 31, 0xFFFF334F, true);
-        panel.addView(error, fullWidth());
-        addGap(panel, 13);
-
-        TextView explanation = makeText(
-                "A critical system exception was detected.\nPreparing secure recovery environment...",
-                14, 0xFFD1D7E0, false);
-        explanation.setLineSpacing(dp(5), 1f);
-        panel.addView(explanation, fullWidth());
-        addGap(panel, 34);
-
-        TextView status = makeText("Stopping user interface services...", 12, Color.WHITE, false);
-        panel.addView(status, fullWidth());
-        addGap(panel, 12);
+        TextView status = text("Validating runtime integrity...", 11, Color.WHITE, false);
+        page.addView(status, fullWidth());
+        addGap(page, 12);
 
         ProgressBar bar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
         bar.setMax(100);
-        bar.setProgress(0);
-        bar.setProgressTintList(android.content.res.ColorStateList.valueOf(0xFFFF334F));
-        bar.setProgressBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFF292D35));
-        LinearLayout.LayoutParams barParams = fullWidth();
-        barParams.height = dp(5);
-        panel.addView(bar, barParams);
-        addGap(panel, 10);
+        bar.setProgressTintList(android.content.res.ColorStateList.valueOf(0xFFE34D4D));
+        bar.setProgressBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFF292D34));
+        LinearLayout.LayoutParams bp = fullWidth();
+        bp.height = dp(5);
+        page.addView(bar, bp);
+        addGap(page, 10);
 
-        TextView percent = makeText("0%", 12, 0xFFB7C0CE, true);
+        TextView percent = text("0%", 10, 0xFF8C96A3, true);
         percent.setGravity(Gravity.RIGHT);
-        panel.addView(percent, fullWidth());
+        page.addView(percent, fullWidth());
 
-        fadeIn(panel, 450);
-        progressAnimator = ValueAnimator.ofInt(0, 100);
-        progressAnimator.setDuration(3600L);
-        progressAnimator.addUpdateListener(animation -> {
-            int value = (Integer) animation.getAnimatedValue();
+        animator = ValueAnimator.ofInt(0, 100);
+        animator.setDuration(2600L);
+        animator.addUpdateListener(a -> {
+            int value = (Integer) a.getAnimatedValue();
             bar.setProgress(value);
-            percent.setText(String.format(Locale.US, "%d%%", value));
-            if (value < 35) status.setText("Stopping user interface services...");
-            else if (value < 70) status.setText("Checking recovery partition...");
-            else if (value < 96) status.setText("Preparing secure boot...");
-            else status.setText("Recovery environment ready.");
+            percent.setText(value + "%");
+            if (value < 35) status.setText("Validating runtime integrity...");
+            else if (value < 70) status.setText("Unexpected module response...");
+            else if (value < 96) status.setText("Recovery service unavailable...");
+            else status.setText("Escalating to recovery interface...");
         });
-        progressAnimator.addListener(new android.animation.AnimatorListenerAdapter() {
+        animator.addListener(new android.animation.AnimatorListenerAdapter() {
             @Override public void onAnimationEnd(Animator animation) {
-                showCodeGate();
+                showAlertStorm();
             }
         });
-        progressAnimator.start();
+        fadeIn(page, 350);
+        animator.start();
     }
 
-    private void showCodeGate() {
+    private void showAlertStorm() {
         if (isFinishing()) return;
-        state = STATE_CODE_GATE;
-        demoCode.setLength(0);
+        state = ALERTS;
+        alertCount = 0;
         root.removeAllViews();
-        root.setBackgroundColor(0xFF03060C);
+        root.setBackgroundColor(0xFF090A0D);
 
-        LinearLayout panel = makeColumn(Gravity.CENTER_VERTICAL, 22);
-        root.addView(panel, matchParent());
+        LinearLayout page = column(0x00000000, 18, 24, 18, 20);
+        root.addView(page, matchParent());
 
-        TextView eyebrow = makeText("SECURE BOOT  /  RECOVERY MODE", 11, 0xFF9CA9BA, true);
-        eyebrow.setLetterSpacing(0.10f);
-        panel.addView(eyebrow, fullWidth());
-        addGap(panel, 22);
+        TextView header = text("RUNTIME ALERTS", 11, 0xFFE36A60, true);
+        header.setLetterSpacing(0.14f);
+        page.addView(header, fullWidth());
+        addGap(page, 12);
 
-        TextView title = makeText("DEVICE RECOVERY", 27, Color.WHITE, true);
-        panel.addView(title, fullWidth());
-        addGap(panel, 10);
+        TextView title = text("Multiple exceptions detected", 21, Color.WHITE, true);
+        page.addView(title, fullWidth());
+        addGap(page, 7);
 
-        TextView description = makeText(
-                "Verification required to restore the system session.",
-                14, 0xFFC1CAD7, false);
+        alertCounter = text("EVENT QUEUE  00 / 50", 10, 0xFF9BA5B1, true);
+        page.addView(alertCounter, fullWidth());
+        addGap(page, 16);
+
+        ProgressBar bar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+        bar.setMax(50);
+        bar.setProgressTintList(android.content.res.ColorStateList.valueOf(0xFFE05B52));
+        bar.setProgressBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFF292D34));
+        LinearLayout.LayoutParams bp = fullWidth();
+        bp.height = dp(4);
+        page.addView(bar, bp);
+        addGap(page, 15);
+
+        ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(false);
+        page.addView(scroll, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
+        alertList = column(0x00000000, 0, 0, 0, 0);
+        scroll.addView(alertList, new ScrollView.LayoutParams(
+                ScrollView.LayoutParams.MATCH_PARENT, ScrollView.LayoutParams.WRAP_CONTENT));
+
+        TextView note = text("Processing local visual events...", 9, 0xFF737D88, false);
+        note.setGravity(Gravity.CENTER);
+        page.addView(note, fullWidth());
+
+        Runnable[] tick = new Runnable[1];
+        tick[0] = () -> {
+            if (state != ALERTS || isFinishing()) return;
+            alertCount++;
+            bar.setProgress(alertCount);
+            alertCounter.setText(String.format(Locale.US, "EVENT QUEUE  %02d / 50", alertCount));
+            String msg = alertMessages[(alertCount - 1) % alertMessages.length];
+            addAlertCard(alertList, alertCount, msg);
+            if (alertList.getChildCount() > 5) alertList.removeViewAt(0);
+            scroll.post(() -> scroll.fullScroll(View.FOCUS_DOWN));
+            if (alertCount >= 50) {
+                handler.postDelayed(this::showRecovery, 500L);
+            } else {
+                handler.postDelayed(tick[0], 125L);
+            }
+        };
+        handler.postDelayed(tick[0], 180L);
+    }
+
+    private void addAlertCard(LinearLayout list, int index, String message) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(12), dp(10), dp(12), dp(10));
+        card.setBackground(roundRect(0xFF181C22, 9, 0xFF38313A));
+        LinearLayout.LayoutParams cp = fullWidth();
+        cp.bottomMargin = dp(7);
+        list.addView(card, cp);
+
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        card.addView(row, fullWidth());
+
+        TextView number = text(String.format(Locale.US, "#%02d", index), 9, 0xFFE16A61, true);
+        row.addView(number, wrap());
+        TextView stateText = text("  DETECTED", 9, 0xFF9AA4AF, true);
+        row.addView(stateText, wrap());
+
+        TextView detail = text(message, 11, 0xFFD0D5DC, false);
+        LinearLayout.LayoutParams dp = fullWidth();
+        dp.topMargin = dp(5);
+        card.addView(detail, dp);
+    }
+
+    private void showRecovery() {
+        if (isFinishing()) return;
+        state = RECOVERY;
+        demoCode.setLength(0);
+        attemptsLeft = MAX_ATTEMPTS;
+        root.removeAllViews();
+        root.setBackgroundColor(0xFF080B10);
+
+        LinearLayout page = column(0x00000000, 22, 24, 22, 20);
+        root.addView(page, matchParent());
+
+        TextView eyebrow = text("RECOVERY ENVIRONMENT", 10, 0xFFE16A61, true);
+        eyebrow.setLetterSpacing(0.12f);
+        page.addView(eyebrow, fullWidth());
+        addGap(page, 20);
+
+        TextView title = text("SESSION VERIFICATION", 23, Color.WHITE, true);
+        page.addView(title, fullWidth());
+        addGap(page, 9);
+
+        TextView description = text(
+                "A recovery code is required to continue this simulated session.",
+                12, 0xFFB8C1CB, false);
         description.setLineSpacing(dp(4), 1f);
-        panel.addView(description, fullWidth());
-        addGap(panel, 26);
+        page.addView(description, fullWidth());
+        addGap(page, 22);
 
-        attemptsLine = makeText("ATTEMPTS REMAINING: 10 / 10", 12, 0xFFFF5368, true);
-        panel.addView(attemptsLine, fullWidth());
-        addGap(panel, 12);
+        attemptsLine = text("ATTEMPTS REMAINING  10 / 10", 10, 0xFFE56B60, true);
+        page.addView(attemptsLine, fullWidth());
+        addGap(page, 11);
 
-        codeDots = makeText("— — — — — —", 26, Color.WHITE, true);
+        codeDots = text("— — — — — —", 25, Color.WHITE, true);
         codeDots.setGravity(Gravity.CENTER);
-        codeDots.setLetterSpacing(0.18f);
-        codeDots.setPadding(0, dp(16), 0, dp(16));
-        codeDots.setBackground(roundRect(0xFF111824, 14, 0xFF303B4B));
-        panel.addView(codeDots, fullWidth());
-        addGap(panel, 12);
+        codeDots.setPadding(0, dp(17), 0, dp(17));
+        codeDots.setBackground(roundRect(0xFF171C24, 12, 0xFF353D48));
+        page.addView(codeDots, fullWidth());
+        addGap(page, 11);
 
-        responseLine = makeText("ENTER RECOVERY CODE", 11, 0xFF9CA9BA, true);
+        responseLine = text("ENTER DEMO CODE", 10, 0xFF929DAA, true);
         responseLine.setGravity(Gravity.CENTER);
-        panel.addView(responseLine, fullWidth());
-        addGap(panel, 14);
+        page.addView(responseLine, fullWidth());
+        addGap(page, 10);
 
         GridLayout keypad = new GridLayout(this);
         keypad.setColumnCount(3);
         keypad.setRowCount(4);
-        keypad.setAlignmentMode(GridLayout.ALIGN_BOUNDS);
-        keypad.setUseDefaultMargins(false);
-        LinearLayout.LayoutParams keypadParams = fullWidth();
-        keypadParams.gravity = Gravity.CENTER_HORIZONTAL;
-        panel.addView(keypad, keypadParams);
-
+        LinearLayout.LayoutParams kp = fullWidth();
+        page.addView(keypad, kp);
         String[] keys = {"1","2","3","4","5","6","7","8","9","DEL","0","ENTER"};
         for (String key : keys) {
-            Button button = new Button(this);
-            button.setText(key);
-            button.setTextSize(15);
-            button.setTextColor(Color.WHITE);
-            button.setAllCaps(true);
-            button.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
-            button.setBackground(roundRect(0xFF172231, 12, 0xFF344154));
+            Button b = button(key, 0xFF171D25, 0xFF39434F);
+            b.setTextColor(Color.WHITE);
+            b.setTextSize(14);
             GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
             lp.width = 0;
-            lp.height = dp(54);
+            lp.height = dp(47);
             lp.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-            lp.setMargins(dp(4), dp(4), dp(4), dp(4));
-            keypad.addView(button, lp);
-            button.setOnClickListener(v -> {
-                if ("DEL".equals(key)) deleteCodeDigit();
+            lp.setMargins(dp(3), dp(3), dp(3), dp(3));
+            keypad.addView(b, lp);
+            b.setOnClickListener(v -> {
+                if ("DEL".equals(key)) deleteDigit();
                 else if ("ENTER".equals(key)) submitDemoCode();
-                else appendCodeDigit(key);
+                else appendDigit(key);
             });
         }
 
-        addGap(panel, 14);
-        Button giveUp = new Button(this);
-        giveUp.setText("GIVE UP  /  RESTART");
-        giveUp.setTextColor(Color.WHITE);
-        giveUp.setTextSize(12);
-        giveUp.setAllCaps(true);
-        giveUp.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
-        giveUp.setBackground(roundRect(0xFF681E2B, 12, 0xFFB33147));
-        panel.addView(giveUp, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(50)));
+        addGap(page, 10);
+        Button giveUp = button("CONTINUE TO RESTART", 0xFF873B37, 0xFFE06A60);
+        page.addView(giveUp, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
         giveUp.setOnClickListener(v -> showFakeRestart());
 
-        addGap(panel, 12);
-        TextView safety = makeText(
-                "SIMULATION CODE ONLY — NEVER ENTER YOUR REAL DEVICE PIN.",
-                9, 0xFFFFC46B, true);
+        TextView safety = text("DEMO INPUT ONLY  •  NEVER ENTER YOUR PHONE PIN", 8, 0xFFE5B777, true);
         safety.setGravity(Gravity.CENTER);
-        safety.setLineSpacing(dp(3), 1f);
-        panel.addView(safety, fullWidth());
-
-        fadeIn(panel, 400);
+        safety.setPadding(0, dp(10), 0, 0);
+        page.addView(safety, fullWidth());
+        fadeIn(page, 350);
     }
 
-    private void appendCodeDigit(String digit) {
-        if (state != STATE_CODE_GATE || demoCode.length() >= MAX_CODE_LENGTH) return;
+    private void appendDigit(String digit) {
+        if (state != RECOVERY || demoCode.length() >= MAX_CODE_LENGTH) return;
         demoCode.append(digit);
-        updateCodeDots();
+        updateDots();
     }
 
-    private void deleteCodeDigit() {
-        if (state != STATE_CODE_GATE || demoCode.length() == 0) return;
+    private void deleteDigit() {
+        if (state != RECOVERY || demoCode.length() == 0) return;
         demoCode.deleteCharAt(demoCode.length() - 1);
-        updateCodeDots();
+        updateDots();
     }
 
-    private void updateCodeDots() {
+    private void updateDots() {
         if (codeDots == null) return;
         if (demoCode.length() == 0) {
             codeDots.setText("— — — — — —");
@@ -328,106 +579,122 @@ public class MainActivity extends Activity {
     }
 
     private void submitDemoCode() {
-        if (state != STATE_CODE_GATE) return;
+        if (state != RECOVERY) return;
         if (TextUtils.isEmpty(demoCode)) {
-            responseLine.setText("ENTER A SIMULATION CODE");
+            responseLine.setText("ENTER A DEMO CODE");
             return;
         }
 
-        // Deliberately discard the entered value. It is not stored, logged or transmitted.
+        // Discard the demo input immediately; never store, log, or transmit it.
         demoCode.setLength(0);
-        updateCodeDots();
+        updateDots();
         attemptsLeft--;
-        attemptsLine.setText("ATTEMPTS REMAINING: " + attemptsLeft + " / " + MAX_ATTEMPTS);
-        responseLine.setText("ACCESS DENIED  //  RETRY REQUIRED");
-        responseLine.setTextColor(0xFFFF5368);
-
-        if (attemptsLeft <= 0) {
-            root.postDelayed(this::showFakeRestart, 650L);
-        }
+        attemptsLine.setText("ATTEMPTS REMAINING  " + attemptsLeft + " / " + MAX_ATTEMPTS);
+        responseLine.setText("VERIFICATION FAILED");
+        responseLine.setTextColor(0xFFE56B60);
+        if (attemptsLeft <= 0) handler.postDelayed(this::showFakeRestart, 650L);
     }
 
     private void showFakeRestart() {
-        if (isFinishing() || state == STATE_FAKE_RESTART) return;
-        state = STATE_FAKE_RESTART;
+        if (isFinishing() || state == FAKE_RESTART) return;
+        state = FAKE_RESTART;
         demoCode.setLength(0);
-        if (progressAnimator != null) progressAnimator.cancel();
+        if (animator != null) animator.cancel();
+        handler.removeCallbacksAndMessages(null);
         root.removeAllViews();
         root.setBackgroundColor(Color.BLACK);
 
-        LinearLayout panel = makeColumn(Gravity.CENTER, 28);
-        root.addView(panel, matchParent());
+        LinearLayout page = column(0x00000000, 24, 24, 24, 24);
+        page.setGravity(Gravity.CENTER);
+        root.addView(page, matchParent());
 
-        TextView symbol = makeText("SYSTEM", 15, 0xFF9EABB9, true);
-        symbol.setGravity(Gravity.CENTER);
-        symbol.setLetterSpacing(0.25f);
-        panel.addView(symbol, fullWidth());
-        addGap(panel, 22);
+        TextView logo = text("NEXUS", 14, 0xFF9DA8B5, true);
+        logo.setGravity(Gravity.CENTER);
+        logo.setLetterSpacing(0.24f);
+        page.addView(logo, fullWidth());
+        addGap(page, 22);
 
-        TextView title = makeText("RESTARTING", 29, Color.WHITE, true);
+        TextView title = text("RESTARTING", 26, Color.WHITE, true);
         title.setGravity(Gravity.CENTER);
-        panel.addView(title, fullWidth());
-        addGap(panel, 12);
+        page.addView(title, fullWidth());
+        addGap(page, 10);
 
-        TextView status = makeText("Restoring system session...", 12, 0xFFABB6C4, false);
+        TextView status = text("Restoring local session...", 11, 0xFF9AA5B2, false);
         status.setGravity(Gravity.CENTER);
-        panel.addView(status, fullWidth());
-        addGap(panel, 25);
+        page.addView(status, fullWidth());
+        addGap(page, 23);
 
         ProgressBar bar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
         bar.setMax(100);
-        bar.setProgress(0);
-        bar.setProgressTintList(android.content.res.ColorStateList.valueOf(0xFF65A7FF));
+        bar.setProgressTintList(android.content.res.ColorStateList.valueOf(0xFF7796C8));
         LinearLayout.LayoutParams bp = fullWidth();
         bp.height = dp(4);
-        panel.addView(bar, bp);
-        addGap(panel, 12);
+        page.addView(bar, bp);
+        addGap(page, 10);
 
-        TextView percent = makeText("0%", 11, 0xFF8794A5, false);
+        TextView percent = text("0%", 10, 0xFF7E8996, false);
         percent.setGravity(Gravity.CENTER);
-        panel.addView(percent, fullWidth());
+        page.addView(percent, fullWidth());
 
-        fadeIn(panel, 350);
-        progressAnimator = ValueAnimator.ofInt(0, 100);
-        progressAnimator.setDuration(3200L);
-        progressAnimator.addUpdateListener(animation -> {
-            int value = (Integer) animation.getAnimatedValue();
+        animator = ValueAnimator.ofInt(0, 100);
+        animator.setDuration(3200L);
+        animator.addUpdateListener(a -> {
+            int value = (Integer) a.getAnimatedValue();
             bar.setProgress(value);
             percent.setText(value + "%");
-            if (value > 78) status.setText("System session restored.");
+            if (value > 82) status.setText("Session ready.");
         });
-        progressAnimator.addListener(new android.animation.AnimatorListenerAdapter() {
+        animator.addListener(new android.animation.AnimatorListenerAdapter() {
             @Override public void onAnimationEnd(Animator animation) {
-                // End only this app. The Android device itself is never rebooted.
+                // Only this Activity closes. The phone is never rebooted.
                 finish();
             }
         });
-        progressAnimator.start();
+        fadeIn(page, 300);
+        animator.start();
     }
 
-    private LinearLayout makeColumn(int gravity, int horizontalPadding) {
-        LinearLayout column = new LinearLayout(this);
-        column.setOrientation(LinearLayout.VERTICAL);
-        column.setGravity(gravity);
-        column.setPadding(dp(horizontalPadding), dp(24), dp(horizontalPadding), dp(24));
-        return column;
+    private LinearLayout column(int bg, int left, int top, int right, int bottom) {
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(dp(left), dp(top), dp(right), dp(bottom));
+        if (bg != 0) layout.setBackgroundColor(bg);
+        return layout;
     }
 
-    private TextView makeText(String value, int sizeSp, int color, boolean bold) {
-        TextView text = new TextView(this);
-        text.setText(value);
-        text.setTextSize(sizeSp);
-        text.setTextColor(color);
-        text.setTypeface(Typeface.MONOSPACE, bold ? Typeface.BOLD : Typeface.NORMAL);
-        return text;
+    private LinearLayout card(int bg, int radius, int stroke) {
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setBackground(roundRect(bg, radius, stroke));
+        return layout;
+    }
+
+    private TextView text(String value, int size, int color, boolean bold) {
+        TextView t = new TextView(this);
+        t.setText(value);
+        t.setTextSize(size);
+        t.setTextColor(color);
+        t.setTypeface(Typeface.create(bold ? "sans-serif-medium" : "sans-serif", bold ? Typeface.BOLD : Typeface.NORMAL));
+        return t;
+    }
+
+    private Button button(String label, int bgColor, int strokeColor) {
+        Button b = new Button(this);
+        b.setText(label);
+        b.setTextSize(11);
+        b.setAllCaps(true);
+        b.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+        b.setTextColor(Color.WHITE);
+        b.setBackground(roundRect(bgColor, 11, strokeColor));
+        return b;
     }
 
     private GradientDrawable roundRect(int color, int radiusDp, int strokeColor) {
-        GradientDrawable bg = new GradientDrawable();
-        bg.setColor(color);
-        bg.setCornerRadius(dp(radiusDp));
-        bg.setStroke(dp(1), strokeColor);
-        return bg;
+        GradientDrawable d = new GradientDrawable();
+        d.setColor(color);
+        d.setCornerRadius(dp(radiusDp));
+        d.setStroke(dp(1), strokeColor);
+        return d;
     }
 
     private FrameLayout.LayoutParams matchParent() {
@@ -442,15 +709,21 @@ public class MainActivity extends Activity {
                 LinearLayout.LayoutParams.WRAP_CONTENT);
     }
 
+    private LinearLayout.LayoutParams wrap() {
+        return new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+    }
+
     private void addGap(LinearLayout parent, int heightDp) {
-        View gap = new View(this);
-        parent.addView(gap, new LinearLayout.LayoutParams(1, dp(heightDp)));
+        View v = new View(this);
+        parent.addView(v, new LinearLayout.LayoutParams(1, dp(heightDp)));
     }
 
     private void fadeIn(View view, long duration) {
-        AlphaAnimation animation = new AlphaAnimation(0f, 1f);
-        animation.setDuration(duration);
-        view.startAnimation(animation);
+        AlphaAnimation a = new AlphaAnimation(0f, 1f);
+        a.setDuration(duration);
+        view.startAnimation(a);
     }
 
     private int dp(int value) {
@@ -459,17 +732,16 @@ public class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        // A normal Android exit must always remain available.
+        // Android Back remains available as an emergency exit.
         finish();
     }
 
     @Override
     protected void onDestroy() {
-        if (progressAnimator != null) progressAnimator.cancel();
+        handler.removeCallbacksAndMessages(null);
+        if (animator != null) animator.cancel();
         if (activeVideo != null) {
-            try {
-                activeVideo.stopPlayback();
-            } catch (RuntimeException ignored) { }
+            try { activeVideo.stopPlayback(); } catch (RuntimeException ignored) { }
         }
         demoCode.setLength(0);
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
