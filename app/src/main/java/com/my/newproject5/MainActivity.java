@@ -40,6 +40,7 @@ public class MainActivity extends Activity {
     private ProgressBar progressBar;
     private int state = STATE_VIDEO;
     private ValueAnimator shutdownAnimator;
+    private boolean pinRequested = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,6 +55,29 @@ public class MainActivity extends Activity {
         root.setBackgroundColor(Color.BLACK);
         setContentView(root);
         playUserVideoOrFallback();
+        // Ask Android to show its own screen-pinning confirmation after playback starts.
+        root.postDelayed(this::requestScreenPinning, 1200L);
+    }
+
+    private void requestScreenPinning() {
+        if (pinRequested || isFinishing()) return;
+        pinRequested = true;
+        try {
+            // Personal devices show Android's native confirmation.
+            // The user can decline or unpin with Android's system gesture.
+            startLockTask();
+        } catch (RuntimeException ignored) {
+            // If screen pinning is disabled or unavailable, playback continues normally.
+        }
+    }
+
+    private void exitPrank() {
+        try {
+            stopLockTask();
+        } catch (RuntimeException ignored) {
+            // The user may have declined the system pinning prompt.
+        }
+        finish();
     }
 
     private void enterImmersiveMode() {
@@ -281,7 +305,7 @@ public class MainActivity extends Activity {
         exit.setBackground(buttonBg);
         content.addView(exit, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(54)));
-        exit.setOnClickListener(v -> finish());
+        exit.setOnClickListener(v -> exitPrank());
 
         AlphaAnimation reveal = new AlphaAnimation(0f, 1f);
         reveal.setDuration(500);
@@ -315,7 +339,7 @@ public class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        super.onBackPressed();
+        exitPrank();
     }
 
     @Override
