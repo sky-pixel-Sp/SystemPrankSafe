@@ -41,37 +41,33 @@ Save Phone mengikuti batasan keamanan Android dan tidak menjanjikan kendali yang
 1. Buka tab **Actions** pada repository.
 2. Pilih workflow **Build Save Phone APK**.
 3. Buka run yang berstatus **completed** dan periksa apakah hasilnya sukses.
-4. Di bagian **Artifacts**, unduh artifact `Save-Phone-debug-apk`.
+4. Di bagian **Artifacts**, unduh artifact **`Save-Phone-v2.0.0-debug-apk`**.
 5. Ekstrak file ZIP artifact, lalu instal APK pada perangkat uji.
 
 APK debug ditujukan untuk pengujian, bukan distribusi produksi. Jangan instal build dari sumber yang tidak dipercaya.
 
 ## Build sendiri
 
-Build dilakukan dari source yang dikemas dalam `Save-Phone-Android.tar.xz`. Workflow GitHub Actions menyiapkan JDK 17, Android SDK 35, dan Gradle 8.9, menjalankan pemeriksaan struktur, lalu menjalankan tugas `assembleDebug`.
+Workflow CI menggunakan alur berikut:
 
-Untuk build lokal, siapkan:
+1. Mengekstrak `Save-Phone-Android.tar.xz` ke direktori `Save-Phone-Android/`.
+2. Menggabungkan bagian patch di `v2patch/`, mendekode patch, lalu menerapkannya ke source.
+3. Menyiapkan JDK 17, Android SDK Platform 35, Build Tools 35.0.0, dan Gradle 8.9.
+4. Menjalankan validator source dan `gradle --no-daemon clean assembleDebug`.
 
-- JDK 17
-- Android SDK dengan platform/build tools yang diperlukan oleh proyek
-- Gradle wrapper proyek
+Untuk mereplikasi build secara lokal, jalankan alur yang sama dari root repository menggunakan Bash (Linux, macOS, WSL, atau Git Bash di Windows). **Jangan melewati langkah penerapan patch v2**: arsip source dan patch v2 adalah dua input terpisah dari workflow.
 
-Ekstrak arsip source, masuk ke direktori proyek hasil ekstraksi, lalu jalankan:
+Perintah build setelah patch diterapkan:
 
 ```bash
-./gradlew assembleDebug
+cd Save-Phone-Android
+gradle --no-daemon clean assembleDebug
 ```
 
-Pada Windows, gunakan:
-
-```bat
-gradlew.bat assembleDebug
-```
-
-APK debug umumnya dihasilkan di:
+APK debug dihasilkan di:
 
 ```
-app/build/outputs/apk/debug/app-debug.apk
+Save-Phone-Android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
 ## Izin yang digunakan
@@ -99,9 +95,8 @@ Sebelum menyatakan rilis siap digunakan, lakukan pengujian pada perangkat fisik 
 ## Struktur repository
 
 - `.github/workflows/build-save-phone.yml` — workflow build APK.
-- `Save-Phone-Android.tar.xz` — arsip source Android.
-- `v2patch/` — berkas patch/perubahan v2.
-- `build-source/` — berkas pendukung proses build.
+- `Save-Phone-Android.tar.xz` — arsip source Android dasar yang digunakan workflow.
+- `v2patch/` — lima bagian patch source v2.0.0 yang diperlukan oleh workflow.
 
 ## Kontribusi dan pelaporan masalah
 
@@ -113,5 +108,5 @@ Laporkan masalah dengan menyertakan:
 
 ---
 
-**Repository:** [sky-pixel-Sp/SystemPrankSafe](https://github.com/sky-pixel-Sp/SystemPrankSafe)  
+**Repository:** [sky-pixel-Sp/save-phone-build](https://github.com/sky-pixel-Sp/save-phone-build)  
 **Branch pengembangan:** `save-phone-build`
