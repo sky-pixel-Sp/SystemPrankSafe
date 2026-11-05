@@ -1,87 +1,117 @@
-# SystemPrankSafe 4.1.0 — NEXUS Utility
+# Save Phone
 
-<p align="center">
-  <strong>Fictional visual prank simulation · Simulasi prank visual fiksi</strong>
-</p>
+**Save Phone** adalah aplikasi Android pendamping keamanan perangkat dengan fitur alarm, penguncian layar, dan kamera manual. Aplikasi ini dirancang untuk membantu pemilik perangkat merespons situasi kehilangan atau akses yang tidak diinginkan—bukan sebagai alat pelacakan tersembunyi.
 
-<p align="center">
-  <a href="https://github.com/sky-pixel-Sp/SystemPrankSafe/releases/latest/download/SystemPrankSafe.apk">
-    <strong>⬇ DOWNLOAD APK TERBARU / DOWNLOAD LATEST APK</strong>
-  </a>
-  ·
-  <a href="https://github.com/sky-pixel-Sp/SystemPrankSafe/releases/latest">Release page</a>
-</p>
+> **Status proyek:** kandidat build v2.0.0. Source dan workflow CI tersedia di branch `save-phone-build`. Keberhasilan build otomatis tidak sama dengan validasi di perangkat fisik. Uji kamera, audio, notifikasi, dan Device Admin pada perangkat Android nyata masih perlu dilakukan sebelum rilis stabil.
 
-**SystemPrankSafe** is a fictional Android visual simulation styled like a game utility/injector interface. It is designed for harmless prank/demo use only. The app includes **Bahasa Indonesia and English**; use the **ID / EN** switch on the dashboard to change the in-app language.
+## Fitur
 
-**SystemPrankSafe** adalah simulasi visual Android fiksi dengan tampilan seperti game utility/injector. Aplikasi ini hanya untuk prank/demo yang tidak merusak perangkat. Tersedia **Bahasa Indonesia dan English**; gunakan tombol **ID / EN** pada dashboard untuk mengganti bahasa.
+- **Alarm keamanan 60 detik** — pemutaran alarm dilakukan oleh aplikasi dengan gain internal maksimum dan mekanisme pengulangan suara.
+- **Kunci layar** — menggunakan Android Device Admin dan `DevicePolicyManager.lockNow()` setelah pengguna mengaktifkan izin administrator perangkat.
+- **Kamera manual** — pengguna membuka aplikasi lalu memilih kamera depan atau belakang. Aplikasi memanggil aplikasi kamera sistem; hasil foto disimpan di penyimpanan privat aplikasi.
+- **Riwayat foto** — melihat, membagikan, dan menghapus foto yang diambil melalui fitur kamera manual.
+- **Peringatan percobaan akses gagal** — setelah ambang kegagalan yang dikonfigurasi tercapai, aplikasi menampilkan notifikasi dengan tindakan untuk membunyikan alarm.
 
----
+## Batasan keamanan dan Android
 
-## Features / Fitur
+Save Phone mengikuti batasan keamanan Android dan tidak menjanjikan kendali yang tidak diberikan kepada aplikasi biasa.
 
-- NEXUS-style dashboard with Free Fire and Roblox visual profiles.
-- Surprise fullscreen video with audio, started only after the user taps the initialize button.
-- Simulated system-failure screen and 50 visual alerts inside the app.
-- Demo-only recovery keypad with a limited number of attempts.
-- Fake restart animation that only closes the app.
-- Android Back remains available to exit.
-- Bahasa Indonesia / English language toggle; the selected language is remembered.
+- Aplikasi **tidak dapat menjamin alarm selalu terdengar pada volume fisik 100%**. Volume sistem, mode senyap, Do Not Disturb, tombol volume, kebijakan perangkat, dan force-stop tetap dapat memengaruhi pemutaran.
+- Aplikasi tidak dapat mematikan perangkat secara paksa, memblokir seluruh tombol perangkat keras, membaca PIN/pola/kata sandi layar, atau melewati autentikasi pemilik.
+- Kamera **tidak berjalan diam-diam** dan tidak otomatis mengambil foto saat alarm aktif. Pengambilan foto memerlukan tindakan manual dari pengguna dan bergantung pada dukungan aplikasi kamera/OEM.
+- Peringatan percobaan akses gagal memberikan notifikasi; alarm tidak otomatis dimulai tanpa tindakan pengguna.
+- Pemilihan kamera depan/belakang bersifat best-effort karena perilaku aplikasi kamera berbeda antarperangkat.
+- Aplikasi tidak mengirim foto ke server dan tidak menyediakan pelacakan lokasi jarak jauh.
 
-## How it works / Cara menggunakan
+## Informasi teknis
 
-1. Open the app and choose a visual profile.
-2. Tap **MULAI MESIN / INITIALIZE ENGINE**.
-3. Wait through the short loading animation; the surprise video then plays with audio.
-4. Continue through the fictional alert and recovery sequence.
-5. The final fake restart animation closes the app. It does **not** restart the phone.
-
-## Safety & privacy / Keamanan & privasi
-
-This is a visual simulation, not a real injector or system utility.
-
-- It does not read, validate, save, or transmit the phone's real screen-lock PIN.
-- Recovery keypad input is demo-only and is not stored or sent anywhere.
-- It does not use Device Admin, Accessibility Service, root, overlay, Lock Task, screen pinning, shutdown, or device reboot.
-- The 50 alerts are displayed only inside the app; they are not Android system notifications.
-- Free Fire and Roblox are visual profile labels only. The app does not modify or inject code into either game.
-- The Android Back button remains available as an exit.
-
-## Download / Unduh
-
-| Item | Details |
+| Komponen | Nilai |
 |---|---|
-| Latest version | **v4.1.0** |
-| APK file | [SystemPrankSafe.apk](https://github.com/sky-pixel-Sp/SystemPrankSafe/releases/latest/download/SystemPrankSafe.apk) |
-| Release notes & versions | [GitHub Releases](https://github.com/sky-pixel-Sp/SystemPrankSafe/releases/latest) |
-| APK size | About **11.07 MB** |
-| Minimum Android | **Android 6.0 (API 23)** |
-| App language | Bahasa Indonesia and English |
-| Application ID | `com.my.newproject5` |
-| Build | GitHub Actions debug APK |
+| Nama aplikasi | Save Phone |
+| Application ID | `id.savephone.app` |
+| Versi sumber | `2.0.0` |
+| Bahasa | Java |
+| Java toolchain | JDK 17 |
+| Compile / Target SDK | 35 / 35 |
+| Minimum SDK | 26 (Android 8.0) |
+| Build | Gradle melalui GitHub Actions |
 
-The repository and release download are public. A GitHub account is not required to download the APK.
+## Mendapatkan APK dari GitHub Actions
 
-Repo dan tautan unduhan bersifat publik. Pengguna tidak perlu login atau memiliki akun GitHub untuk mengunduh APK.
+1. Buka tab **Actions** pada repository.
+2. Pilih workflow **Build Save Phone APK**.
+3. Buka run yang berstatus **completed** dan periksa apakah hasilnya sukses.
+4. Di bagian **Artifacts**, unduh artifact `Save-Phone-debug-apk`.
+5. Ekstrak file ZIP artifact, lalu instal APK pada perangkat uji.
 
-**Compatibility note:** The APK targets Android 6.0 and newer. Actual compatibility can still vary by device and Android version; it has not been physically tested on every phone model, including all Redmi devices.
+APK debug ditujukan untuk pengujian, bukan distribusi produksi. Jangan instal build dari sumber yang tidak dipercaya.
 
-**Catatan kompatibilitas:** APK ditujukan untuk Android 6.0 ke atas. Kompatibilitas nyata tetap bisa berbeda menurut tipe HP dan versi Android; aplikasi belum diuji secara fisik pada semua model, termasuk seluruh perangkat Redmi.
+## Build sendiri
 
-## Verify APK / Verifikasi APK
+Build dilakukan dari source yang dikemas dalam `Save-Phone-Android.tar.xz`. Workflow GitHub Actions menyiapkan JDK 17, Android SDK 35, dan Gradle 8.9, menjalankan pemeriksaan struktur, lalu menjalankan tugas `assembleDebug`.
 
-SHA-256 for the v4.1.0 APK:
+Untuk build lokal, siapkan:
+
+- JDK 17
+- Android SDK dengan platform/build tools yang diperlukan oleh proyek
+- Gradle wrapper proyek
+
+Ekstrak arsip source, masuk ke direktori proyek hasil ekstraksi, lalu jalankan:
+
+```bash
+./gradlew assembleDebug
+```
+
+Pada Windows, gunakan:
+
+```bat
+gradlew.bat assembleDebug
+```
+
+APK debug umumnya dihasilkan di:
 
 ```
-754c7e5dad43e556f11729888e6990c61475a8bd9ab81d58bb6ce0557b354f5b
+app/build/outputs/apk/debug/app-debug.apk
 ```
 
-## Project / Proyek
+## Izin yang digunakan
 
-- Indonesian documentation: [README-ID.md](README-ID.md)
-- Source code: [Browse repository](https://github.com/sky-pixel-Sp/SystemPrankSafe)
-- Latest release: [Download SystemPrankSafe](https://github.com/sky-pixel-Sp/SystemPrankSafe/releases/latest)
+- **Kamera:** hanya untuk alur pengambilan foto manual yang dimulai pengguna.
+- **Device Admin:** diperlukan untuk fungsi kunci layar; aktivasi dilakukan secara eksplisit oleh pemilik perangkat.
+- **Notifikasi:** untuk menyampaikan peringatan dan menyediakan tindakan alarm.
+- **Foreground service/audio (jika diperlukan oleh konfigurasi Android):** untuk mendukung pemutaran alarm sesuai batasan versi Android.
+
+Tinjau dialog izin Android sebelum mengaktifkan fitur. Cabut izin atau nonaktifkan administrator perangkat melalui pengaturan Android jika ingin menghentikan fungsi terkait.
+
+## Pengujian
+
+Sebelum menyatakan rilis siap digunakan, lakukan pengujian pada perangkat fisik dan catat model perangkat serta versi Android:
+
+- instalasi, pembukaan aplikasi, dan pembaruan;
+- aktivasi/nonaktivasi Device Admin dan fungsi kunci layar;
+- alarm selama 60 detik pada volume, mode senyap, dan DND yang berbeda;
+- kamera depan/belakang, penyimpanan foto, berbagi, dan penghapusan;
+- notifikasi saat aplikasi berada di latar belakang;
+- perilaku setelah aplikasi dihentikan atau perangkat di-restart.
+
+**Catatan:** status CI hanya membuktikan tahapan yang benar-benar dijalankan oleh workflow. Status tersebut tidak membuktikan kompatibilitas semua perangkat atau keberhasilan pengujian fisik.
+
+## Struktur repository
+
+- `.github/workflows/build-save-phone.yml` — workflow build APK.
+- `Save-Phone-Android.tar.xz` — arsip source Android.
+- `v2patch/` — berkas patch/perubahan v2.
+- `build-source/` — berkas pendukung proses build.
+
+## Kontribusi dan pelaporan masalah
+
+Laporkan masalah dengan menyertakan:
+- model perangkat dan versi Android;
+- langkah untuk mereproduksi masalah;
+- hasil yang diharapkan dan hasil aktual;
+- log build atau logcat yang relevan (hapus data pribadi sebelum membagikan).
 
 ---
 
-**Disclaimer:** SystemPrankSafe is an entertainment/demo application. It is not affiliated with, endorsed by, or an official tool for Garena Free Fire, Roblox, or their respective publishers.
+**Repository:** [sky-pixel-Sp/SystemPrankSafe](https://github.com/sky-pixel-Sp/SystemPrankSafe)  
+**Branch pengembangan:** `save-phone-build`

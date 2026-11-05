@@ -1,0 +1,1 @@
+Rebuild Save Phone v2.0.0 after Android 11+ manual camera launch compatibility fix.
