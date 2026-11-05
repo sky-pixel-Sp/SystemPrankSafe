@@ -36,6 +36,13 @@ jobs:
       - name: Validate source structure
         working-directory: Save-Phone-Android
         run: python3 tools/validate_project.py
+      - name: Upload source project for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: Save-Phone-source-v1.1.0
+          path: Save-Phone-Android/**
+          if-no-files-found: error
+          retention-days: 14
       - name: Build debug APK
         working-directory: Save-Phone-Android
         run: gradle --no-daemon clean assembleDebug
